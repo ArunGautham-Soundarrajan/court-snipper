@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-browser
+          sudo apt-get install -y chromium-browser xvfb
 
       - name: Build
         run: go build -v -o court-snipper .
@@ -33,4 +33,6 @@ jobs:
           echo "HEADLESS=${{ vars.HEADLESS }}" >> .env
 
       - name: Run
-        run: ./court-snipper
+        run: xvfb-run -a ./court-snipper
+        env:
+          DISPLAY: :99
