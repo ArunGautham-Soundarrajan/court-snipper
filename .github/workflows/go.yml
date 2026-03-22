@@ -4,25 +4,33 @@
 name: Go
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.25'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25"
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y chromium-browser
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v -o court-snipper .
 
-    - name: Test
-      run: go test -v ./...
+      - name: Create .env file
+        run: |
+          echo "USER_NAME=${{ secrets.USER_NAME }}" >> .env
+          echo "PASSWORD=${{ secrets.PASSWORD }}" >> .env
+          echo "SIGN_IN_URL=${{ vars.SIGN_IN_URL }}" >> .env
+          echo "CALENDAR_URL=${{ vars.CALENDAR_URL }}" >> .env
+          echo "HEADLESS=${{ vars.HEADLESS }}" >> .env
+
+      - name: Run
+        run: ./court-snipper
