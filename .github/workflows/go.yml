@@ -1,10 +1,12 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Court Snipper Bot
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "15 1 * * 5" # Runs every Friday at 1:15 AM UTC
 
 jobs:
   build:
@@ -31,6 +33,7 @@ jobs:
           echo "SIGN_IN_URL=${{ vars.SIGN_IN_URL }}" >> .env
           echo "CALENDAR_URL=${{ vars.CALENDAR_URL }}" >> .env
           echo "HEADLESS=${{ vars.HEADLESS }}" >> .env
+          echo "TIME_SLOTS=${{ vars.TIME_SLOTS }}" >> .env
 
       - name: Run
         run: xvfb-run -a ./court-snipper
