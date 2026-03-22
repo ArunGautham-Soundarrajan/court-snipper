@@ -21,7 +21,7 @@ func main() {
 		log.Fatal("Error loading config: ", err)
 	}
 
-	l := launcher.New().Headless(cfg.Headless)
+	l := launcher.New().Headless(cfg.Headless).Set("no-sandbox")
 	browser := rod.New().ControlURL(l.MustLaunch()).MustConnect()
 	defer browser.MustClose()
 
