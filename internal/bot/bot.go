@@ -12,17 +12,19 @@ import (
 
 // CSS Selectors
 const (
-	usernameFieldSelector     = "#at-field-username_and_email"
-	passwordFieldSelector     = "#at-field-password"
-	signInButtonSelector      = "#at-btn"
-	logoutButtonSelector      = "a"
-	logoutButtonPattern       = "/log out/i"
-	popupCancelButtonSelector = "#onesignal-slidedown-cancel-button"
-	timeSlotRowSelector       = "tr.minislot-row"
-	courtGridSelector         = ".booking-centre-court-grid"
-	availableCourtSelector    = "td.bg-info"
-	bookButtonSelector        = "button"
-	bookLinkPattern           = "Book this court..."
+	usernameFieldSelector            = "#at-field-username_and_email"
+	passwordFieldSelector            = "#at-field-password"
+	signInButtonSelector             = "#at-btn"
+	logoutButtonSelector             = "a"
+	logoutButtonPattern              = "/log out/i"
+	popupCancelButtonSelector        = "#onesignal-slidedown-cancel-button"
+	timeSlotRowSelector              = "tr.minislot-row"
+	courtGridSelector                = ".booking-centre-court-grid"
+	availableCourtSelector           = "td.bg-info"
+	bookButtonSelector               = "button"
+	bookLinkPattern                  = "Book this court..."
+	bookingConfirmationModalSelector = "#scheduleDialogue"
+	confirmBookingButtonSelector     = "#confirmSchedule"
 )
 
 // Timeouts and delays
@@ -201,6 +203,18 @@ func (b *Bot) BookCourt(courtElement *rod.Element) error {
 	if err := bookLink.WaitVisible(); err != nil {
 		return NewBotError("book-court", "booking link did not become visible", err)
 	}
+
+	bookLink.MustClick()
+
+	// Wait for confimation modal
+	model, err := b.page.Timeout(15 * time.Second).Element(bookingConfirmationModalSelector)
+	if err != nil {
+		return NewBotError("book-court", "confirmation modal did not appear", err)
+	}
+	// #confirmSchedule
+	button := model.MustElement(confirmBookingButtonSelector).MustWaitVisible()
+
+	button.MustClick()
 
 	return nil
 }
