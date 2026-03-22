@@ -7,6 +7,7 @@ import (
 	"github.com/ArunGautham-Soundarrajan/courtsnipper/internal/bot"
 	"github.com/ArunGautham-Soundarrajan/courtsnipper/internal/config"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 )
 
 const (
@@ -20,7 +21,8 @@ func main() {
 		log.Fatal("Error loading config: ", err)
 	}
 
-	browser := rod.New().MustConnect()
+	l := launcher.New().Headless(cfg.Headless)
+	browser := rod.New().ControlURL(l.MustLaunch()).MustConnect()
 	defer browser.MustClose()
 
 	page := browser.MustPage(cfg.SignInURL)

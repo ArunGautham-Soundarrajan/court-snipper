@@ -16,9 +16,14 @@ type SiteConfig struct {
 	CalendarURL string `mapstructure:"CALENDAR_URL"`
 }
 
+type RunConfig struct {
+	Headless bool `mapstructure:"HEADLESS"`
+}
+
 type Config struct {
 	UserConfig `mapstructure:",squash"` // "squash" handles the embedding
 	SiteConfig `mapstructure:",squash"`
+	RunConfig  `mapstructure:",squash"`
 }
 
 func LoadConfig() (*Config, error) {
