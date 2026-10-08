@@ -13,7 +13,7 @@ Automated court booking bot that uses headless browser automation to book tennis
 │   └── config/
 │       └── config.go                # Configuration loading from .env
 ├── .github/workflows/
-│   └── go.yml                        # CI/CD pipeline (manual + cron trigger)
+│   └── publish.yml                   # Builds and publishes the container image
 └── .env                             # Configuration file (secrets excluded)
 ```
 
@@ -95,45 +95,13 @@ Use browser DevTools to inspect the HTML and check if it's a `class` or `id` att
 - `retryDelay = 2 * time.Second` between attempts
 - Exponential backoff logging shows attempt number
 
-### 4. GitHub Actions Pipeline (`.github/workflows/go.yml`)
+### 4. Deployment
 
-**Triggers:**
+The bot runs as a Kubernetes CronJob in the homelab cluster (Fridays at 01:15 Europe/London); the manifests live in the `homelab-cluster` repo under `clusters/config/court-snipper`.
 
-- `workflow_dispatch` — Manual trigger via GitHub Actions UI
-- `schedule` — Cron job (currently every Friday at 1:15 AM UTC)
-
-**Critical Steps:**
-
-1. **Install Dependencies:**
-
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y chromium-browser xvfb
-   ```
-
-   - `xvfb` = X virtual framebuffer (required for headless browser display on Linux)
-
-2. **Create `.env` from Secrets/Variables:**
-
-   ```yaml
-   echo "USER_NAME=${{ secrets.USER_NAME }}" >> .env
-   echo "PASSWORD=${{ secrets.PASSWORD }}" >> .env
-   echo "SIGN_IN_URL=${{ vars.SIGN_IN_URL }}" >> .env
-   echo "CALENDAR_URL=${{ vars.CALENDAR_URL }}" >> .env
-   echo "HEADLESS=${{ vars.HEADLESS }}" >> .env
-   echo "TIME_SLOTS=${{ vars.TIME_SLOTS }}" >> .env
-   ```
-
-   - **Secrets** (encrypted): `USER_NAME`, `PASSWORD`
-   - **Variables** (public): `SIGN_IN_URL`, `CALENDAR_URL`, `HEADLESS`, `TIME_SLOTS`
-
-3. **Run with Virtual Display:**
-   ```bash
-   xvfb-run -a ./court-snipper
-   DISPLAY=:99
-   ```
-
-   - `xvfb-run` provides virtual X11 display (required for CI/CD)
+- `.github/workflows/publish.yml` builds the `Dockerfile` and pushes `ghcr.io/arungautham-soundarrajan/court-snipper:latest` (and `sha-<commit>`) on every push to `main`. The next scheduled run picks it up.
+- The image runs `xvfb-run -a court-snipper`, so Chromium has a virtual display even with `HEADLESS=false`.
+- Configuration comes from environment variables (no `.env` in the container). `USER_NAME`, `PASSWORD`, `SIGN_IN_URL` and `CALENDAR_URL` are synced from Infisical (`/court-snipper`); `HEADLESS` and `TIME_SLOTS` are set in the CronJob.
 
 ## Browser Launcher Flags
 
@@ -203,13 +171,11 @@ screenshot, _ := b.page.Screenshot(false, &proto.PageCaptureScreenshot{Format: p
    - Increase timeout if page is slow to load
    - Default timeouts are often too short for real websites
 
-3. **GitHub Secrets Setup**
-   - Must create secrets/variables in GitHub UI before running workflow
-   - Secrets won't display in logs (for security)
+3. **Secrets**
+   - Credentials and URLs live in Infisical at `/court-snipper`, never in Git
 
-4. **Virtual Display in CI/CD**
-   - Headless still needs `xvfb` on Linux for display server
-   - Don't forget `DISPLAY=:99` env variable
+4. **Virtual Display**
+   - Headed Chromium on Linux needs a display server; the image runs the bot under `xvfb-run`
 
 5. **Configuration Format**
    - TIME_SLOTS needs commas as separator: `18:00, 19:00`
@@ -227,18 +193,6 @@ screenshot, _ := b.page.Screenshot(false, &proto.PageCaptureScreenshot{Format: p
    - Popups can appear at different times
    - `ClearPopUps()` is safe to call multiple times
    - If popup blocking booking, increase wait time before checking for button
-
-## Testing the Workflow
-
-1. Push code to GitHub
-2. Go to Actions tab → Select workflow
-3. Click "Run workflow" button
-4. Monitor logs in real-time
-5. Check for:
-   - Browser initialization success
-   - Sign-in completion
-   - Time slot checks
-   - Booking success/failure
 
 ## Extending the Bot
 
@@ -260,11 +214,7 @@ screenshot, _ := b.page.Screenshot(false, &proto.PageCaptureScreenshot{Format: p
 
 ### Change Schedule
 
-Update cron in `.github/workflows/go.yml`:
-
-- `"0 8 * * 1"` — Every Monday at 8 AM UTC
-- `"*/30 * * * *"` — Every 30 minutes
-- `"0 0 * * *"` — Every day at midnight UTC
+Edit `schedule` in `clusters/config/court-snipper/cronjob.yaml` in the `homelab-cluster` repo.
 
 ## Error Handling
 

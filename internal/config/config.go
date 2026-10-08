@@ -38,6 +38,14 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
+	// Unmarshal only sees keys viper already knows, so bind each one; without
+	// this, settings that come only from the environment (as in Kubernetes)
+	// are ignored.
+	for _, key := range []string{"USER_NAME", "PASSWORD", "SIGN_IN_URL", "CALENDAR_URL", "HEADLESS", "TIME_SLOTS"} {
+		if err := viper.BindEnv(key); err != nil {
+			return nil, err
+		}
+	}
 
 	if err := viper.ReadInConfig(); err != nil {
 		// the file is missing in production (using system Envs),

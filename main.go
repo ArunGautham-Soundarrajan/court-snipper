@@ -30,6 +30,11 @@ func main() {
 		Set("no-sandbox").
 		Set("disable-gpu").
 		Set("disable-dev-shm-usage")
+	// Use an installed Chromium (as in the container image) rather than
+	// downloading one.
+	if bin, ok := launcher.LookPath(); ok {
+		l = l.Bin(bin)
+	}
 	browser := rod.New().ControlURL(l.MustLaunch()).MustConnect()
 	defer browser.MustClose()
 	log.Println("Browser connected")
