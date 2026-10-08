@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/ArunGautham-Soundarrajan/courtsnipper/internal/config"
@@ -43,6 +44,9 @@ type Bot struct {
 	popupCheckTimeout   time.Duration
 }
 
+// ErrNoAvailableCourt means the slot exists but every court is taken.
+var ErrNoAvailableCourt = errors.New("no available court")
+
 // BotError wraps bot-specific errors
 type BotError struct {
 	Operation string
@@ -56,6 +60,8 @@ func (e *BotError) Error() string {
 	}
 	return fmt.Sprintf("bot %s error: %s", e.Operation, e.Message)
 }
+
+func (e *BotError) Unwrap() error { return e.Err }
 
 func NewBotError(operation, message string, err error) *BotError {
 	return &BotError{Operation: operation, Message: message, Err: err}
@@ -81,6 +87,7 @@ func (b *Bot) SignIn() error {
 	b.page.MustElement(usernameFieldSelector).MustInput(b.cfg.UserName)
 	b.page.MustElement(passwordFieldSelector).MustInput(b.cfg.Password)
 	b.page.MustElement(signInButtonSelector).MustClick()
+	slog.Info("sign-in: credentials submitted")
 
 	if ok, err := b.HasSignedIn(); !ok {
 		if err != nil {
@@ -111,6 +118,7 @@ func (b *Bot) ClearPopUps() error {
 	if err == nil {
 		cancelBtn.MustClick()
 		b.page.MustWaitIdle()
+		slog.Info("popup dismissed")
 	}
 
 	return nil
@@ -129,6 +137,7 @@ func (b *Bot) CheckAvailability(desiredTime string) (*rod.Element, error) {
 	wait := b.page.MustWaitNavigation()
 	b.page.MustNavigate(b.cfg.CalendarURL)
 	wait()
+	slog.Info("calendar loaded", "slot", desiredTime)
 
 	if _, err := b.page.Element(timeSlotRowSelector); err != nil {
 		return nil, NewBotError("check-availability", "time slot row not found", err)
@@ -153,7 +162,7 @@ func (b *Bot) CheckAvailability(desiredTime string) (*rod.Element, error) {
 
 	firstAvailable, err := row.Element(availableCourtSelector)
 	if err != nil || firstAvailable == nil {
-		return nil, NewBotError("check-availability", fmt.Sprintf("no available courts for time %s", desiredTime), nil)
+		return nil, NewBotError("check-availability", fmt.Sprintf("no available courts for time %s", desiredTime), ErrNoAvailableCourt)
 	}
 
 	return firstAvailable, nil
@@ -205,6 +214,7 @@ func (b *Bot) BookCourt(courtElement *rod.Element) error {
 	}
 
 	bookLink.MustClick()
+	slog.Info("booking: court selected, waiting for confirmation dialog")
 
 	// Wait for confimation modal
 	model, err := b.page.Timeout(15 * time.Second).Element(bookingConfirmationModalSelector)
@@ -215,6 +225,7 @@ func (b *Bot) BookCourt(courtElement *rod.Element) error {
 	button := model.MustElement(confirmBookingButtonSelector).MustWaitVisible()
 
 	button.MustClick()
+	slog.Info("booking: confirmed")
 
 	return nil
 }
