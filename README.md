@@ -101,7 +101,7 @@ The bot runs as a Kubernetes CronJob in the homelab cluster (Fridays at 01:15 Eu
 
 - `.github/workflows/publish.yml` builds the `Dockerfile` and pushes `ghcr.io/arungautham-soundarrajan/court-snipper:latest` (and `sha-<commit>`) on every push to `main`. The next scheduled run picks it up.
 - The image runs `xvfb-run -a court-snipper`, so Chromium has a virtual display even with `HEADLESS=false`.
-- Configuration comes from environment variables (no `.env` in the container). `USER_NAME`, `PASSWORD`, `SIGN_IN_URL` and `CALENDAR_URL` are synced from Infisical (`/court-snipper`); `HEADLESS` and `TIME_SLOTS` are set in the CronJob.
+- Configuration comes from environment variables (no `.env` in the container). `USER_NAME` and `PASSWORD` are synced from Infisical (`/court-snipper`); `HEADLESS`, `TIME_SLOTS`, `SIGN_IN_URL` and `CALENDAR_URL` are set in the CronJob.
 
 ## Browser Launcher Flags
 
@@ -172,7 +172,7 @@ screenshot, _ := b.page.Screenshot(false, &proto.PageCaptureScreenshot{Format: p
    - Default timeouts are often too short for real websites
 
 3. **Secrets**
-   - Credentials and URLs live in Infisical at `/court-snipper`, never in Git
+   - Credentials live in Infisical at `/court-snipper`, never in Git
 
 4. **Virtual Display**
    - Headed Chromium on Linux needs a display server; the image runs the bot under `xvfb-run`
