@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -48,8 +48,8 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		// the file is missing in production (using system Envs),
-		fmt.Printf("Warning: .env file not found or unreadable: %v\n", err)
+		// Expected in a container, where settings come only from the environment.
+		slog.Info("no .env file, using environment only", "err", err)
 	}
 
 	var cfg Config
